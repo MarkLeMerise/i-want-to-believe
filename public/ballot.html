@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>🛸 I Want To Believe 👽</title>
+
+    <!-- update the version number as needed -->
+    <script defer src="/__/firebase/6.0.4/firebase-app.js"></script>
+    <script defer src="/__/firebase/6.0.4/firebase-firestore.js"></script>
+    <!-- initialize the SDK after all desired features are loaded -->
+    <script defer src="/__/firebase/init.js"></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.7.0/qs.min.js"
+    ></script>
+
+    <style>
+      body,
+      html {
+        background: rgba(0, 0, 0, 0);
+        text-align: center;
+      }
+
+      #percentage {
+        color: white;
+        font-family: "Helvetica";
+        font-size: 10rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="percentage">0%</div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async function() {
+        const db = firebase.firestore();
+        const { ballotName, voteType } = Qs.parse(location.search, {
+          ignoreQueryPrefix: true
+        });
+
+        if (!(ballotName || voteType)) {
+          return;
+        }
+
+        const nextBallot = db.collection("ballots").doc(ballotName);
+
+        if (!(await nextBallot.get()).exists) {
+          return;
+        }
+
+        const currentBallot = await db
+          .collection("ballots")
+          .doc("current-ballot");
+
+        if (!currentBallot.isEqual(nextBallot)) {
+          // This sends a signal to all subscribers that this is now the current ballot.
+          currentBallot.update({ ballot: nextBallot });
+        }
+
+        nextBallot.collection("votes").onSnapshot(result => {
+          const totalVotes = result.size;
+          const ofType = result.docs.filter(d => d.data().type === voteType)
+            .length;
+          const percentage = totalVotes
+            ? Math.floor((ofType / totalVotes) * 100)
+            : 0;
+          document.querySelector("#percentage").textContent = `${percentage}%`;
+        });
+
+        document.addEventListener("onbeforeunload", () => {
+          currentBallot.update({ ballot: null });
+        });
+      });
+    </script>
+  </body>
+</html>

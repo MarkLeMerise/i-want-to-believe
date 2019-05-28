@@ -1,0 +1,7 @@
+{
+    "editor.formatOnSave": true,
+    "files.exclude": {
+        ".firebase": true,
+        "node_modules": true
+    }
+}

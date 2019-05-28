@@ -8,11 +8,8 @@
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "firebase": "^6.0.4"
-  },
   "devDependencies": {
     "firebase-tools": "^6.10.0",
-    "typescript": "^3.4.5"
+    "prettier": "^1.17.1"
   }
 }

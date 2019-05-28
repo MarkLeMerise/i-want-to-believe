@@ -1,2 +1,3 @@
 node_modules
-hosting*.cache
+.firebase
+firebase-debug.log
