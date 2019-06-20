@@ -43,22 +43,9 @@
           return;
         }
 
-        const nextBallot = db.collection("ballots").doc(ballotName);
+        const ballot = db.collection("ballots").doc(ballotName);
 
-        if (!(await nextBallot.get()).exists) {
-          return;
-        }
-
-        const currentBallot = await db
-          .collection("ballots")
-          .doc("current-ballot");
-
-        if (!currentBallot.isEqual(nextBallot)) {
-          // This sends a signal to all subscribers that this is now the current ballot.
-          currentBallot.update({ ballot: nextBallot });
-        }
-
-        nextBallot.collection("votes").onSnapshot(result => {
+        ballot.collection("votes").onSnapshot(result => {
           const totalVotes = result.size;
           const ofType = result.docs.filter(d => d.data().type === voteType)
             .length;
@@ -66,10 +53,6 @@
             ? Math.floor((ofType / totalVotes) * 100)
             : 0;
           document.querySelector("#percentage").textContent = `${percentage}%`;
-        });
-
-        document.addEventListener("onbeforeunload", () => {
-          currentBallot.update({ ballot: null });
         });
       });
     </script>

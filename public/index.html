@@ -34,7 +34,7 @@
         border: none;
         color: white;
         display: flex;
-        font-size: 10rem;
+        font-size: 20vw;
         align-items: center;
         justify-content: center;
         flex: 1;
@@ -47,15 +47,23 @@
       }
 
       #believer {
-        background-color: blue;
+        background-color: rgb(164, 194, 244);
       }
 
       #skeptic {
-        background-color: red;
+        background-color: rgb(204, 65, 37);
+      }
+
+      #ballot-name {
+        font-family: Arial, Helvetica, sans-serif;
+        text-align: center;
+        padding: 0.5em;
+        size: 2rem;
       }
     </style>
   </head>
   <body>
+    <div id="ballot-name">Please wait...</div>
     <div class="poll-button-container">
       <button id="believer" class="poll-button">believer</button>
       <button id="skeptic" class="poll-button">skeptic</button>
@@ -64,16 +72,51 @@
     <script>
       document.addEventListener("DOMContentLoaded", async function() {
         const db = firebase.firestore();
-        let fingerprint = new ClientJS().getFingerprint();
+        let fingerprint = new ClientJS().getFingerprint().toString();
         let currentBallot = await db
           .collection("ballots")
           .doc("current-ballot");
         const believerBtn = document.querySelector("#believer");
         const skepticBtn = document.querySelector("#skeptic");
+        const ballotName = document.querySelector("#ballot-name");
+        let myVote;
+        let myVoteSubscription;
+
+        currentBallot.onSnapshot(async doc => {
+          const { ballot } = doc.data();
+
+          if (ballot) {
+            myVoteSubscription = ballot
+              .collection("votes")
+              .doc(fingerprint)
+              .onSnapshot(vote => {
+                if (!vote.exists) {
+                  return;
+                }
+
+                const { type } = vote.data();
+
+                if (type === "believer") {
+                  believerBtn.textContent = "✅ Believer";
+                  skepticBtn.textContent = "Skeptic";
+                } else if (type === "skeptic") {
+                  believerBtn.textContent = "Believer";
+                  skepticBtn.textContent = "✅ Skeptic";
+                } else {
+                  believerBtn.textContent = "Believer";
+                  skepticBtn.textContent = "Skeptic";
+                }
+              });
+          } else if (myVoteSubscription) {
+            myVoteSubscription();
+          }
+        });
 
         function disableVoting() {
           believerBtn.disabled = true;
           skepticBtn.disabled = true;
+          believerBtn.textContent = "Believer";
+          skepticBtn.textContent = "Skeptic";
         }
 
         function enableVoting() {
@@ -84,7 +127,7 @@
         function castVote(type) {
           currentBallot
             .collection("votes")
-            .doc(fingerprint.toString())
+            .doc(fingerprint)
             .set({
               type: type,
               timeVoted: firebase.firestore.Timestamp.fromDate(new Date())
@@ -93,11 +136,16 @@
 
         db.collection("ballots")
           .doc("current-ballot")
-          .onSnapshot(nextBallot => {
-            if (nextBallot.data().ballot) {
-              currentBallot = nextBallot.data().ballot;
+          .onSnapshot(async nextBallotPointer => {
+            const { ballot } = nextBallotPointer.data();
+            currentBallot = ballot;
+
+            if (ballot) {
+              const ballotDoc = await ballot.get();
               enableVoting();
+              ballotName.textContent = ballotDoc.data().label;
             } else {
+              ballotName.textContent = "Please wait...";
               disableVoting();
             }
           });
